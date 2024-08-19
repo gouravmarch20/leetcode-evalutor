@@ -1,5 +1,5 @@
 export type TestCase = {
-	input: string,
-	output: string
+    input: string,
+    output: string
 };
 export type TestCases = TestCase[];
