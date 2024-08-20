@@ -8,9 +8,9 @@ import { validate } from "../../validators/zodValidator";
 const submissionRouter = express.Router();
 
 submissionRouter.post(
-    '/', 
-    validate(createSubmissionZodSchema),
-    addSubmission
+  '/',
+  validate(createSubmissionZodSchema),
+  addSubmission
 );
 
 export default submissionRouter;

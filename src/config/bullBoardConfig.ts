@@ -10,8 +10,8 @@ const serverAdapter = new ExpressAdapter();
 serverAdapter.setBasePath('/ui');
 
 createBullBoard({
-    queues: [new BullMQAdapter(sampleQueue), new BullMQAdapter(submissionQueue)],
-    serverAdapter,
+  queues: [new BullMQAdapter(sampleQueue), new BullMQAdapter(submissionQueue)],
+  serverAdapter,
 });
 
 export default serverAdapter;
