@@ -19,6 +19,7 @@ class JavaExecutor implements CodeExecutorStrategy {
 
     console.log("Initialising a new java docker container");
     console.log(`Code received is \n ${code.replace(/'/g, `'\\"`)}`);
+    // create Main.java --> dupm code --> run
     const runCommand = `echo '${code.replace(/'/g, `'\\"`)}' > Main.java && javac Main.java && echo '${inputTestCase.replace(/'/g, `'\\"`)}' | java Main`;
     console.log(runCommand);
     const javaDockerContainer = await createContainer(JAVA_IMAGE, [
@@ -96,3 +97,5 @@ class JavaExecutor implements CodeExecutorStrategy {
 
 
 export default JavaExecutor;
+
+

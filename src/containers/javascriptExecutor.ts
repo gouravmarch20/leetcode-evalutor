@@ -1,11 +1,11 @@
 import CodeExecutorStrategy, { ExecutionResponse } from "../types/CodeExecutorStrategy";
-import { PYTHON_IMAGE } from "../utils/constants";
+import { NODE_IMAGE } from "../utils/constants"; // e.g., "node:18-slim"
 import createContainer from "./containerFactory";
 import decodeDockerStream from "./dockerHelper";
 import pullImage from "./pullImage";
 import Docker from "dockerode";
 
-class PythonExecutor implements CodeExecutorStrategy {
+class JavaScriptExecutor implements CodeExecutorStrategy {
   async execute(
     code: string,
     inputTestCase: string,
@@ -15,53 +15,49 @@ class PythonExecutor implements CodeExecutorStrategy {
     console.log("Input:", inputTestCase);
     console.log("Expected Output:", outputTestCase);
 
-    // Pull latest Python image
-    await pullImage(PYTHON_IMAGE);
+    await pullImage(NODE_IMAGE);
+    console.log("Initializing a new Node Docker container");
 
-    console.log("Initializing a new Python Docker container");
-
+    // Prepare the command to run JavaScript code with input
     const runCommand = `
-cat << 'EOF' > test.py
+cat << 'EOF' > script.js
 ${code}
 EOF
-echo '${inputTestCase}' | python3 test.py
+echo '${inputTestCase}' | node script.js
 `;
 
-    const pythonDockerContainer: Docker.Container = await createContainer(PYTHON_IMAGE, [
+    const nodeDockerContainer: Docker.Container = await createContainer(NODE_IMAGE, [
       "/bin/sh",
       "-c",
       runCommand,
     ]);
 
     try {
-      await pythonDockerContainer.start();
+      await nodeDockerContainer.start();
       console.log("Docker container started");
 
-      // Wait for the container to finish execution
-      await pythonDockerContainer.wait();
+      await nodeDockerContainer.wait();
 
-      // Fetch logs after execution
-      const logs = await pythonDockerContainer.logs({
+      const logs = await nodeDockerContainer.logs({
         stdout: true,
         stderr: true,
       });
 
-      // Ensure logs are Buffer[]
       const rawLogBuffer: Buffer[] = Array.isArray(logs) ? (logs as Buffer[]) : [logs as Buffer];
-
       const completeBuffer = Buffer.concat(rawLogBuffer);
       const decoded = decodeDockerStream(completeBuffer);
 
       if (decoded.stderr) {
         return { output: decoded.stderr.trim(), status: "ERROR" };
       }
+
       return { output: decoded.stdout.trim(), status: "COMPLETED" };
     } catch (error: any) {
       return { output: String(error), status: "ERROR" };
     } finally {
-      await pythonDockerContainer.remove();
+      await nodeDockerContainer.remove();
     }
   }
 }
 
-export default PythonExecutor;
+export default JavaScriptExecutor;
