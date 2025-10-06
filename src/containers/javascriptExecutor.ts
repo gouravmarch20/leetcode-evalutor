@@ -1,9 +1,10 @@
+import Docker from "dockerode";
+
 import CodeExecutorStrategy, { ExecutionResponse } from "../types/CodeExecutorStrategy";
 import { NODE_IMAGE } from "../utils/constants"; // e.g., "node:18-slim"
 import createContainer from "./containerFactory";
 import decodeDockerStream from "./dockerHelper";
 import pullImage from "./pullImage";
-import Docker from "dockerode";
 
 class JavaScriptExecutor implements CodeExecutorStrategy {
   async execute(
@@ -52,7 +53,7 @@ echo '${inputTestCase}' | node script.js
       }
 
       return { output: decoded.stdout.trim(), status: "COMPLETED" };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return { output: String(error), status: "ERROR" };
     } finally {
       await nodeDockerContainer.remove();

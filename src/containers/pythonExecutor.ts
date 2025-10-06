@@ -1,9 +1,10 @@
+import Docker from "dockerode";
+
 import CodeExecutorStrategy, { ExecutionResponse } from "../types/CodeExecutorStrategy";
 import { PYTHON_IMAGE } from "../utils/constants";
 import createContainer from "./containerFactory";
 import decodeDockerStream from "./dockerHelper";
 import pullImage from "./pullImage";
-import Docker from "dockerode";
 
 class PythonExecutor implements CodeExecutorStrategy {
   async execute(
@@ -56,7 +57,7 @@ echo '${inputTestCase}' | python3 test.py
         return { output: decoded.stderr.trim(), status: "ERROR" };
       }
       return { output: decoded.stdout.trim(), status: "COMPLETED" };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return { output: String(error), status: "ERROR" };
     } finally {
       await pythonDockerContainer.remove();

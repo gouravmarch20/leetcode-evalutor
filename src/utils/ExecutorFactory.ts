@@ -1,7 +1,7 @@
 import JavaExecutor from "../containers/javaExecutor";
+import JavasciptExecutor from "../containers/javascriptExecutor";
 import PythonExecutor from "../containers/pythonExecutor";
 import CodeExecutorStrategy from "../types/CodeExecutorStrategy";
-import JavasciptExecutor from "../containers/javascriptExecutor";
 
 export default function createExecutor(
   codeLanguage: string
