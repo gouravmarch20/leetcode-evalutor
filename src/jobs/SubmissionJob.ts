@@ -5,6 +5,9 @@ import { IJob } from "../types/bullMqJobDefinition";
 import { ExecutionResponse } from "../types/CodeExecutorStrategy";
 import { SubmissionPayload } from "../types/submissionPayload";
 import createExecutor from "../utils/ExecutorFactory";
+import serverConfig from "../config/serverConfig";
+const SUBMISSION_SERVICE_UPDATE =
+  serverConfig.SUBMISSION_SERVICE + "/submissions";
 export default class SubmissionJob implements IJob {
   name: string;
   payload: Record<string, SubmissionPayload>;
@@ -15,7 +18,7 @@ export default class SubmissionJob implements IJob {
 
   handle = async (job?: Job) => {
     console.log("Handler of the job called");
-    console.log(this.payload);
+    // console.log(this.payload);
     if (job) {
       const key = Object.keys(this.payload)[0];
       const codeLanguage = this.payload[key].language;
@@ -26,22 +29,31 @@ export default class SubmissionJob implements IJob {
       const submissionId = this.payload?.[key]?.submissionId;
 
       const strategy = createExecutor(codeLanguage);
-      console.log(strategy, "dd");
+      // console.log(strategy);
       if (strategy != null) {
         const response: ExecutionResponse = await strategy.execute(
           code,
           inputTestCase,
           outputTestCase
         );
-        if (response.status === "COMPLETED") {
+        if (
+          response.status === "COMPLETED" ||
+          response.status === "FAILED_TEST"
+        ) {
           console.log("Code executed successfully");
-          console.log(response);
-          // evalutionQueueProducer({ response });
 
+          await fetch(SUBMISSION_SERVICE_UPDATE, {
+            method: "PUT", // or POST if your route uses POST
+            headers: {
+              "Content-Type": "application/json",
+            },
+
+            body: JSON.stringify({ submissionId, status: response.status }),
+          });
           await evalutionQueueProducer({
             response,
             userId,
-            submissionId
+            submissionId,
           });
         } else {
           console.log("Something went wrong with code execution");

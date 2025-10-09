@@ -1,6 +1,8 @@
 import Docker from "dockerode";
 
-import CodeExecutorStrategy, { ExecutionResponse } from "../types/CodeExecutorStrategy";
+import CodeExecutorStrategy, {
+  ExecutionResponse,
+} from "../types/CodeExecutorStrategy";
 import { NODE_IMAGE } from "../utils/constants"; // e.g., "node:18-slim"
 import createContainer from "./containerFactory";
 import decodeDockerStream from "./dockerHelper";
@@ -27,11 +29,10 @@ EOF
 echo '${inputTestCase}' | node script.js
 `;
 
-    const nodeDockerContainer: Docker.Container = await createContainer(NODE_IMAGE, [
-      "/bin/sh",
-      "-c",
-      runCommand,
-    ]);
+    const nodeDockerContainer: Docker.Container = await createContainer(
+      NODE_IMAGE,
+      ["/bin/sh", "-c", runCommand]
+    );
 
     try {
       await nodeDockerContainer.start();
@@ -44,15 +45,21 @@ echo '${inputTestCase}' | node script.js
         stderr: true,
       });
 
-      const rawLogBuffer: Buffer[] = Array.isArray(logs) ? (logs as Buffer[]) : [logs as Buffer];
+      const rawLogBuffer: Buffer[] = Array.isArray(logs)
+        ? (logs as Buffer[])
+        : [logs as Buffer];
       const completeBuffer = Buffer.concat(rawLogBuffer);
       const decoded = decodeDockerStream(completeBuffer);
 
       if (decoded.stderr) {
-        return { output: decoded.stderr.trim(), status: "ERROR" };
+        return { output: decoded.stderr, status: "ERROR" };
       }
-
-      return { output: decoded.stdout.trim(), status: "COMPLETED" };
+      console.log("debug_9", decoded.stdout.trim(), outputTestCase);
+      if (decoded.stdout.trim() === outputTestCase) {
+        return { output: decoded.stdout.trim(), status: "COMPLETED" };
+      } else {
+        return { output: decoded.stdout.trim(), status: "FAILED_TEST" };
+      }
     } catch (error: unknown) {
       return { output: String(error), status: "ERROR" };
     } finally {
