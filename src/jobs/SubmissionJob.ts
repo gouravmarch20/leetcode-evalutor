@@ -1,11 +1,11 @@
 import { Job } from "bullmq";
 
+import serverConfig from "../config/serverConfig";
 import evalutionQueueProducer from "../producers/evalutionQueueProducer";
 import { IJob } from "../types/bullMqJobDefinition";
 import { ExecutionResponse } from "../types/CodeExecutorStrategy";
 import { SubmissionPayload } from "../types/submissionPayload";
 import createExecutor from "../utils/ExecutorFactory";
-import serverConfig from "../config/serverConfig";
 const SUBMISSION_SERVICE_UPDATE =
   serverConfig.SUBMISSION_SERVICE + "/submissions";
 export default class SubmissionJob implements IJob {
@@ -36,11 +36,10 @@ export default class SubmissionJob implements IJob {
           inputTestCase,
           outputTestCase
         );
-        if (
-          response.status === "COMPLETED" ||
-          response.status === "FAILED_TEST"
-        ) {
-          console.log("Code executed successfully");
+        console.log("Code executed successfully", SUBMISSION_SERVICE_UPDATE , response);
+
+
+        if (response.status) {
 
           await fetch(SUBMISSION_SERVICE_UPDATE, {
             method: "PUT", // or POST if your route uses POST

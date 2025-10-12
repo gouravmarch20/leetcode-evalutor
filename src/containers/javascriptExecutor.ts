@@ -1,9 +1,6 @@
 import Docker from "dockerode";
-
-import CodeExecutorStrategy, {
-  ExecutionResponse,
-} from "../types/CodeExecutorStrategy";
-import { NODE_IMAGE } from "../utils/constants"; // e.g., "node:18-slim"
+import CodeExecutorStrategy, { ExecutionResponse } from "../types/CodeExecutorStrategy";
+import { NODE_IMAGE } from "../utils/constants";
 import createContainer from "./containerFactory";
 import decodeDockerStream from "./dockerHelper";
 import pullImage from "./pullImage";
@@ -14,14 +11,8 @@ class JavaScriptExecutor implements CodeExecutorStrategy {
     inputTestCase: string,
     outputTestCase: string
   ): Promise<ExecutionResponse> {
-    console.log("Code to execute:", code);
-    console.log("Input:", inputTestCase);
-    console.log("Expected Output:", outputTestCase);
-
     await pullImage(NODE_IMAGE);
-    console.log("Initializing a new Node Docker container");
 
-    // Prepare the command to run JavaScript code with input
     const runCommand = `
 cat << 'EOF' > script.js
 ${code}
@@ -36,34 +27,49 @@ echo '${inputTestCase}' | node script.js
 
     try {
       await nodeDockerContainer.start();
-      console.log("Docker container started");
-
       await nodeDockerContainer.wait();
 
-      const logs = await nodeDockerContainer.logs({
-        stdout: true,
-        stderr: true,
-      });
-
-      const rawLogBuffer: Buffer[] = Array.isArray(logs)
-        ? (logs as Buffer[])
-        : [logs as Buffer];
+      const logs = await nodeDockerContainer.logs({ stdout: true, stderr: true });
+      const rawLogBuffer: Buffer[] = Array.isArray(logs) ? (logs as Buffer[]) : [logs as Buffer];
       const completeBuffer = Buffer.concat(rawLogBuffer);
       const decoded = decodeDockerStream(completeBuffer);
 
-      if (decoded.stderr) {
-        return { output: decoded.stderr, status: "ERROR" };
+      const stdout = decoded.stdout.trim();
+      const stderr = decoded.stderr.trim();
+
+      // 🔍 Case 1: Compilation or runtime error
+      if (stderr) {
+        return {
+          output: stderr,
+          status: "COMPILATION_ERROR",
+        };
       }
-      console.log("debug_9", decoded.stdout.trim(), outputTestCase);
-      if (decoded.stdout.trim() === outputTestCase) {
-        return { output: decoded.stdout.trim(), status: "COMPLETED" };
-      } else {
-        return { output: decoded.stdout.trim(), status: "FAILED_TEST" };
+
+      // 🔍 Case 2: Successful execution but wrong output
+      if (stdout !== outputTestCase) {
+        return {
+          output: stdout,
+          status: "FAILED_TEST",
+        };
       }
+
+      // 🔍 Case 3: Perfect match
+      return {
+        output: stdout,
+        status: "SUCCESS",
+      };
     } catch (error: unknown) {
-      return { output: String(error), status: "ERROR" };
+      // 🔥 Docker / internal failure
+      return {
+        output: String(error),
+        status: "SYSTEM_ERROR",
+      };
     } finally {
-      await nodeDockerContainer.remove();
+      try {
+        await nodeDockerContainer.remove();
+      } catch (err) {
+        console.warn("Failed to remove container:", err);
+      }
     }
   }
 }
