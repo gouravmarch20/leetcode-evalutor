@@ -7,7 +7,7 @@ import { ExecutionResponse } from "../types/CodeExecutorStrategy";
 import { SubmissionPayload } from "../types/submissionPayload";
 import createExecutor from "../utils/ExecutorFactory";
 const SUBMISSION_SERVICE_UPDATE =
-  serverConfig.SUBMISSION_SERVICE + "/submissions";
+  serverConfig.SUBMISSION_SERVICE + "api/v1/submissions";
 export default class SubmissionJob implements IJob {
   name: string;
   payload: Record<string, SubmissionPayload>;
@@ -36,19 +36,27 @@ export default class SubmissionJob implements IJob {
           inputTestCase,
           outputTestCase
         );
-        console.log("Code executed successfully", SUBMISSION_SERVICE_UPDATE , response);
-
+        console.log(
+          "Code executed successfully",
+          SUBMISSION_SERVICE_UPDATE,
+          response
+        );
 
         if (response.status) {
+          try {
+            const res = await fetch(SUBMISSION_SERVICE_UPDATE, {
+              method: "PUT", // or POST if your route uses POST
+              headers: {
+                "Content-Type": "application/json",
+              },
 
-          await fetch(SUBMISSION_SERVICE_UPDATE, {
-            method: "PUT", // or POST if your route uses POST
-            headers: {
-              "Content-Type": "application/json",
-            },
+              body: JSON.stringify({ submissionId, status: response.status }),
+            });
+            console.log("subminssion sucess ", res);
+          } catch (error) {
+            console.log("subminssion status change ", error);
+          }
 
-            body: JSON.stringify({ submissionId, status: response.status }),
-          });
           await evalutionQueueProducer({
             response,
             userId,
